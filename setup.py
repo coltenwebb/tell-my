@@ -11,7 +11,7 @@ from setuptools import setup
 APP = ['Tell My.py']
 DATA_FILES = []
 OPTIONS = {
-    'iconfile': '/Users/coltenwebb/stalk/AppIcon.icns',
+    'iconfile': './assets/AppIcon.icns',
     'includes': ['keyring.backends.kwallet', 'keyring.backends.OS_X', 'keyring.backends.SecretService', 'keyring.backends.Windows', 'pyicloud']
 }
 
