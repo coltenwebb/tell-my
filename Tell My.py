@@ -11,7 +11,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtCore import QFile, QTimer
 from main_window_ui import Ui_MainWindow
 from sign_in_ui import Ui_SignIn
-from activate_ui import Ui_Activate
 from two_factor_auth_ui import Ui_TwoFactorAuth
 import configparser
 from appdirs import user_data_dir
@@ -21,49 +20,6 @@ INITIAL_COUNTDOWN_TIME = 10
 COUNTDOWN_TIME = 120
 
 current_window = None
-
-class ActivateWindow(QMainWindow):
-    def __init__(self):
-        super(ActivateWindow, self).__init__()
-        self.ui = Ui_Activate()
-        self.ui.setupUi(self)
-
-        # deal with trial situation
-        dt = datetime.now()
-        trial_start = get_config('trial_start')
-        if not trial_start:
-            set_config('trial_start', str(dt))
-            trial_start = str(dt)
-
-        trial_start = datetime.strptime(trial_start, '%Y-%m-%d %H:%M:%S.%f')
-
-        time_dif = dt - trial_start
-        if time_dif.days > 8:
-            self.ui.continue_button.setEnabled(False)
-            self.ui.trial_info_label.setText("Your trial is over.")
-        else:
-            self.ui.continue_button.setEnabled(True)
-            self.ui.trial_info_label.setText(f"You have {8-time_dif.days} days left of your trial.")
-
-        self.ui.continue_button.clicked.connect(self.escape)
-        self.ui.activate_button.clicked.connect(self.activate)
-
-
-    def activate(self, key):
-        key = self.ui.key.text()
-        if activate(key):
-            self.escape()
-
-
-    def escape(self):
-        global current_window
-        self.close()
-        current_window = SignInWindow()
-        current_window.show()
-
-    def reject(self):
-        QApplication.quit()
-
 
 class SignInWindow(QMainWindow):
     def __init__(self):
@@ -100,37 +56,18 @@ class SignInWindow(QMainWindow):
             current_window.show()
         elif self.api.requires_2sa:
             # the old api that sends a text message
-            trusted_devices = self.api.trusted_devices
-            print(trusted_devices)
-            self.ui.listWidget.addItems([x['deviceType'] for x in trusted_devices])
-            self.ui.label_2.setEnabled(True)
-            self.ui.listWidget.setEnabled(True)
-            self.ui.pushButton.setEnabled(True)
-            self.ui.lineEdit.setEnabled(True)
+            show_dialog("your account doesn't support 2fa", "error")
+            QApplication.quit()
         else:
             print("icloud enabled!")
-            self.continue_to_program()
-
-    def send(self):
-        idx = self.ui.listWidget.currentRow()
-        self.device_2sa = self.api.trusted_devices[idx]
-        if not self.api.send_verification_code(self.device_2sa):
-            print("Failed to send verification code")
-            sys.exit(1)
-
-    def process2SA(self):
-        code = self.ui.lineEdit.text()
-        if not self.api.validate_verification_code(self.device_2sa, code):
-            print("Failed to verify verification code")
-            sys.exit(1)
-        else:
             self.continue_to_program()
 
     def continue_to_program(self):
         self.close()
         # we make it a member so the gc doesn't cause problems
-        self.nextWindow = MainWindow(self.api)
-        self.nextWindow.show()
+        global current_window
+        current_window = MainWindow(self.api)
+        current_window.show()
 
     def reject(self):
         QApplication.quit()
@@ -145,6 +82,10 @@ class TwoFactorAuth(QMainWindow):
 
     def accept(self):
         code = self.ui.lineEdit.text()
+        if self.api.validate_2fa_code(code):
+            self.continue_to_program()
+        else:
+            print("Code failed")
 
     def continue_to_program(self):
         self.close()
@@ -448,20 +389,6 @@ def show_dialog(self, message, title="alert"):
     if returnvalue == QMessageBox.Ok:
         pass
 
-def activate(key):
-    try:
-        res = requests.get("https://tellmy.colten.me/api/activate", params={'key': key}).json()
-    except Exception as e:
-        show_dialog(f'There was an error validating your key. Error: {e}', 'Error')
-        return False
-
-    if res.get('valid') == 'false':
-        show_dialog('That key was invalid', 'Error')
-        return False
-    else:
-        set_config('key', key)
-        return True
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
@@ -469,12 +396,7 @@ if __name__ == "__main__":
     config_path = Path(user_data_dir('Tell My', 'cw')) / 'data.ini'
     config.read(config_path)
 
-    key = get_config('key')
-    if key and activate(key):
-        current_window = SignInWindow()
-        current_window.show()
-    else:
-        current_window = ActivateWindow()
-        current_window.show()
+    current_window = SignInWindow()
+    current_window.show()
 
     app.exec_()
