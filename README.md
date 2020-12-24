@@ -1,8 +1,5 @@
-# Tell My
-<p align="center">
 ![Icon](./assets/tell-my-icon.png)
-</p>
---------------------------------------------------------------------
+# Tell My
 
 Track your friends and family using the "Find My" app. Polls iCloud using the
 unofficial API exposed by their website.
