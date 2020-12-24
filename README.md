@@ -1,6 +1,8 @@
 ![Icon](./assets/tell-my-icon.png)
 # Tell My
 
+[Download Latest](https://github.com/coltenwebb/tell-my/releases/latest)
+
 Track your friends and family using the "Find My" app. Polls iCloud using the
 unofficial API exposed by their website.
 
