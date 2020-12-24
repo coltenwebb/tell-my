@@ -4,6 +4,8 @@
 Track your friends and family using the "Find My" app. Polls iCloud using the
 unofficial API exposed by their website.
 
+![Screenshot](./assets/screenshot-1.png)
+
 ## Setup
 
 Clone the repository.
